@@ -48,67 +48,75 @@ app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });*/
 // Aggiungi questo al tuo serverDB.js
+// Crea un file test-server.js con questo codice minimo
 const express = require('express');
 const cors = require('cors');
-const db = require('./db'); 
 
 const app = express();
 const port = 8080;
 
-app.use(cors({
-    origin: 'http://localhost:5173/', // Permetti richieste dal frontend Vue
-}));
-app.use(express.json()); // Usa il parser JSON integrato di Express
-// POST login utente
-app.post('/api/login', async (req, res) => {
+// Middleware essenziali
+app.use(cors());
+app.use(express.json());
+
+// Log per vedere le richieste
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
+// Endpoint di test semplicissimo
+app.get('/api/test', (req, res) => {
+    console.log('✅ Richiesta di test ricevuta!');
+    res.json({ 
+        message: 'Server funziona!', 
+        timestamp: new Date().toISOString(),
+        port: port
+    });
+});
+
+// Endpoint login semplificato
+app.post('/api/login', (req, res) => {
+    console.log('✅ Richiesta login ricevuta!');
+    console.log('Body:', req.body);
+    
     const { email, password } = req.body;
     
-    try {
-        console.log('Tentativo di login per:', email);
-        
-        // Query per trovare l'utente con email e password
-        const [rows] = await db.query(
-            'SELECT * FROM utenti WHERE email = ? AND password = ?',
-            [email, password]
-        );
-        
-        if (rows.length > 0) {
-            const user = rows[0];
-            // Rimuovi la password dalla risposta per sicurezza
-            const { password: _, ...userWithoutPassword } = user;
-            
-            console.log('Login riuscito per:', email);
-            res.json({ 
-                success: true, 
-                message: 'Login riuscito',
-                user: userWithoutPassword 
-            });
-        } else {
-            console.log('Login fallito per:', email);
-            res.status(401).json({ 
-                success: false, 
-                message: 'Email o password non corretti' 
-            });
-        }
-    } catch (error) {
-        console.error('Errore LOGIN:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Errore nel server durante il login' 
+    // Test senza database
+    if (email === 'test@test.com' && password === 'test') {
+        res.json({
+            success: true,
+            message: 'Login di test riuscito',
+            user: { id: 1, nome: 'Test', email: 'test@test.com' }
+        });
+    } else {
+        res.status(401).json({
+            success: false,
+            message: 'Usa email: test@test.com e password: test'
         });
     }
 });
 
-// GET tutti gli utenti (opzionale, per debug)
-app.get('/api/utenti', async (req, res) => {
-    try {
-        const [rows] = await db.query('SELECT idUtente, nome, cognome, email, role FROM utenti');
-        res.json(rows);
-    } catch (error) {
-        console.error('Errore GET utenti:', error);
-        res.status(500).json({ error: 'Errore nel recupero utenti' });
-    }
-});
+// Avvia server
 app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+    console.log('\n🚀🚀🚀 SERVER TEST AVVIATO 🚀🚀🚀');
+    console.log(`📍 URL: http://localhost:${port}`);
+    console.log(`📍 Test: http://localhost:${port}/api/test`);
+    console.log('📍 Login test: email=test@test.com, password=test');
+    console.log('========================================\n');
+});
+
+// Gestione errori
+app.use((err, req, res, next) => {
+    console.error('💥 Errore server:', err);
+    res.status(500).json({ error: 'Errore interno del server' });
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('💥 Errore non gestito:', err);
+});
+
+process.on('SIGINT', () => {
+    console.log('\n👋 Server fermato');
+    process.exit(0);
 });

@@ -1,96 +1,123 @@
-import { useState } from "react";
-import { type Utenti } from "../model/Classes";
+import { useState } from 'react';
 
-type LoginResponse = {
-    success: boolean;
-    message: string;
-    user?: Omit<Utenti, 'password'>;
-    error?: string;
-};
+export default function SimpleTest() {
+    const [result, setResult] = useState('');
+    const [loading, setLoading] = useState(false);
 
-type Props = { 
-    onLoginSuccess: (user: Omit<Utenti, 'password'>) => void;
-};
-
-export default function Login({ onLoginSuccess }: Props) {
-    const [email, setEmail] = useState<string>('');
-    const [password, setPassword] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string>('');
-
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const testBasicConnection = async () => {
         setLoading(true);
-        setError('');
+        setResult('Testando...');
+        
+        try {
+            console.log('🔍 Tentativo di connessione a localhost:8080...');
+            
+            const response = await fetch('http://localhost:8080/api/test');
+            
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response ok:', response.ok);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📦 Data ricevuti:', data);
+                setResult(`✅ SUCCESS: ${JSON.stringify(data, null, 2)}`);
+            } else {
+                setResult(`❌ HTTP ERROR: ${response.status} - ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('💥 Fetch error:', error);
+            setResult(`❌ FETCH ERROR: ${error}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    const testLogin = async () => {
+        setLoading(true);
+        setResult('Testando login...');
+        
         try {
             const response = await fetch('http://localhost:8080/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({
+                    email: 'test@test.com',
+                    password: 'test'
+                })
             });
-
-            const data: LoginResponse = await response.json();
-
-            if (data.success && data.user) {
-                console.log('Login riuscito:', data.user);
-                onLoginSuccess(data.user);
+            
+            const data = await response.json();
+            console.log('Login response:', data);
+            
+            if (response.ok) {
+                setResult(`✅ LOGIN SUCCESS: ${JSON.stringify(data, null, 2)}`);
             } else {
-                setError(data.message || 'Errore durante il login');
+                setResult(`❌ LOGIN FAILED: ${JSON.stringify(data, null, 2)}`);
             }
         } catch (error) {
-            console.error('Errore di rete:', error);
-            setError('Errore di connessione al server');
+            console.error('Login error:', error);
+            setResult(`❌ LOGIN ERROR: ${error}`);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="login-container">
-            <form onSubmit={handleLogin} className="login-form">
-                <h2>Login</h2>
-                
-                {error && (
-                    <div className="error-message" style={{ color: 'red', marginBottom: '10px' }}>
-                        {error}
-                    </div>
-                )}
-
-                <div className="form-group">
-                    <label htmlFor="email">Email:</label>
-                    <input
-                        type="email"
-                        id="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="password">Password:</label>
-                    <input
-                        type="password"
-                        id="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        disabled={loading}
-                    />
-                </div>
-
+        <div style={{ padding: '20px', fontFamily: 'monospace' }}>
+            <h2>🔧 DEBUG SERVER CONNECTION</h2>
+            
+            <div style={{ marginBottom: '20px' }}>
                 <button 
-                    type="submit" 
+                    onClick={testBasicConnection} 
                     disabled={loading}
-                    className="login-button"
+                    style={{ 
+                        padding: '10px 20px', 
+                        marginRight: '10px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
                 >
-                    {loading ? 'Accesso in corso...' : 'Accedi'}
+                    {loading ? '⏳ Testing...' : '🔍 Test Connection'}
                 </button>
-            </form>
+                
+                <button 
+                    onClick={testLogin} 
+                    disabled={loading}
+                    style={{ 
+                        padding: '10px 20px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    {loading ? '⏳ Testing...' : '🔑 Test Login'}
+                </button>
+            </div>
+            
+            <div style={{ 
+                backgroundColor: '#f8f9fa', 
+                padding: '15px', 
+                borderRadius: '4px',
+                border: '1px solid #dee2e6',
+                minHeight: '100px',
+                whiteSpace: 'pre-wrap'
+            }}>
+                <strong>Result:</strong><br/>
+                {result || 'Premi un bottone per testare...'}
+            </div>
+            
+            <div style={{ marginTop: '20px', fontSize: '12px', color: '#666' }}>
+                <strong>Istruzioni:</strong><br/>
+                1. Assicurati che il server sia avviato con: <code>node test-server.js</code><br/>
+                2. Controlla che non ci siano errori nella console del browser (F12)<br/>
+                3. Il server dovrebbe essere su http://localhost:8080
+            </div>
         </div>
     );
 }
