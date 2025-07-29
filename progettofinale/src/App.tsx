@@ -1,21 +1,17 @@
-import './App.css'
-import Home from './components/Home'
+import './App.css';
+import Home from './components/Home';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-//import Accesso from '';
+import AppHome from './AppHome';
 
 function App() {
-
   return (
-<>
- <Home> 
-  </Home>
-  <BrowserRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/utente"  />
+        <Route path="/AppHome" element={<AppHome />} />
       </Routes>
     </BrowserRouter>
-</>
-  )
+  );
 }
+
 export default App;
