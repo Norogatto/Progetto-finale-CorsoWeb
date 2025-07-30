@@ -9,7 +9,7 @@ import todoReducer from "./todoSlice";
 // e permette di gestire le azioni e i reducer
 export const store = configureStore({
     reducer: {
-        todos: todoReducer,
+        todo: todoReducer,
         // user: userReducer
     }
 });
