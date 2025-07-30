@@ -12,7 +12,9 @@ function Home() {
       <br /><br />
 
       <div>
+        <Link to="/Login">
         <button>Accedi come utente</button>
+        </Link>
       </div>
 
       <br /><br />
