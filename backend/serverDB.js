@@ -51,6 +51,7 @@ app.listen(port, () => {
 // Crea un file test-server.js con questo codice minimo
 const express = require('express');
 const cors = require('cors');
+const db = require('./db'); 
 
 const app = express();
 const port = 8080;
@@ -58,6 +59,35 @@ const port = 8080;
 // Middleware essenziali
 app.use(cors());
 app.use(express.json());
+
+
+// GET USER 'admin'
+app.get('/api/admin', async (req, res) => {
+    try {
+        console.log('Tentativo di recupero admin...');
+        const [admin] = await db.query('SELECT * FROM utenti WHERE email=?', ['admin@gmail.com']);
+        console.log('ADMIN:', admin);
+        res.json(admin);
+    } catch (error) {
+        console.error('Errore GET admin - Dettagli completi:', error);
+        console.error('Errore message:', error.message);
+        console.error('Errore code:', error.code);
+        res.status(500).json({ error: 'Errore nel recupero admin' });
+    }
+});
+
+// Avvia server
+app.listen(port, () => {
+    console.log('\n🚀🚀🚀 SERVER TEST AVVIATO 🚀🚀🚀');
+    console.log(`📍 URL: http://localhost:${port}`);
+    console.log('========================================\n');
+});
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 // Log per vedere le richieste
 app.use((req, res, next) => {
@@ -97,14 +127,9 @@ app.post('/api/login', (req, res) => {
     }
 });
 
-// Avvia server
-app.listen(port, () => {
-    console.log('\n🚀🚀🚀 SERVER TEST AVVIATO 🚀🚀🚀');
-    console.log(`📍 URL: http://localhost:${port}`);
-    console.log(`📍 Test: http://localhost:${port}/api/test`);
-    console.log('📍 Login test: email=test@test.com, password=test');
-    console.log('========================================\n');
-});
+
+
+
 
 // Gestione errori
 app.use((err, req, res, next) => {

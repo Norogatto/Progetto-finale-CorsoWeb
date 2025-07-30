@@ -1,5 +1,7 @@
+export type UserWithoutPassword = Omit<Utenti, 'password'>;
+
 export type Utenti = {
-    idUtente: Number;
+    idUtente: number;
     nome: string;
     cognome: string;
     email: string;

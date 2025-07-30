@@ -1,21 +1,29 @@
 import { useState } from 'react';
+import type { UserWithoutPassword } from '../model/Classes';
 
-export default function SimpleTest() {
+
+type SimpleTestProps = {
+    onLoginSuccess?: (user: UserWithoutPassword) => void;
+};
+
+export default function SimpleTest({ onLoginSuccess }: SimpleTestProps) {
     const [result, setResult] = useState('');
     const [loading, setLoading] = useState(false);
+
+
 
     const testBasicConnection = async () => {
         setLoading(true);
         setResult('Testando...');
-        
+
         try {
             console.log('🔍 Tentativo di connessione a localhost:8080...');
-            
+
             const response = await fetch('http://localhost:8080/api/test');
-            
+
             console.log('📡 Response status:', response.status);
             console.log('📡 Response ok:', response.ok);
-            
+
             if (response.ok) {
                 const data = await response.json();
                 console.log('📦 Data ricevuti:', data);
@@ -34,24 +42,25 @@ export default function SimpleTest() {
     const testLogin = async () => {
         setLoading(true);
         setResult('Testando login...');
-        
+
         try {
             const response = await fetch('http://localhost:8080/api/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: 'test@test.com',
-                    password: 'test'
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: 'test@test.com', password: 'test' }),
             });
-            
-            const data = await response.json();
+
+            const data: UserWithoutPassword = await response.json();
             console.log('Login response:', data);
-            
+
             if (response.ok) {
                 setResult(`✅ LOGIN SUCCESS: ${JSON.stringify(data, null, 2)}`);
+
+                // ✅ chiama la funzione se presente
+                if (typeof onLoginSuccess === 'function') {
+                    onLoginSuccess(data); // <-- Assicurati che "data" abbia il tipo UserWithoutPassword
+                }
+
             } else {
                 setResult(`❌ LOGIN FAILED: ${JSON.stringify(data, null, 2)}`);
             }
@@ -66,13 +75,13 @@ export default function SimpleTest() {
     return (
         <div style={{ padding: '20px', fontFamily: 'monospace' }}>
             <h2>🔧 DEBUG SERVER CONNECTION</h2>
-            
+
             <div style={{ marginBottom: '20px' }}>
-                <button 
-                    onClick={testBasicConnection} 
+                <button
+                    onClick={testBasicConnection}
                     disabled={loading}
-                    style={{ 
-                        padding: '10px 20px', 
+                    style={{
+                        padding: '10px 20px',
                         marginRight: '10px',
                         backgroundColor: '#007bff',
                         color: 'white',
@@ -83,11 +92,11 @@ export default function SimpleTest() {
                 >
                     {loading ? '⏳ Testing...' : '🔍 Test Connection'}
                 </button>
-                
-                <button 
-                    onClick={testLogin} 
+
+                <button
+                    onClick={testLogin}
                     disabled={loading}
-                    style={{ 
+                    style={{
                         padding: '10px 20px',
                         backgroundColor: '#28a745',
                         color: 'white',
@@ -99,23 +108,23 @@ export default function SimpleTest() {
                     {loading ? '⏳ Testing...' : '🔑 Test Login'}
                 </button>
             </div>
-            
-            <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '15px', 
+
+            <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '15px',
                 borderRadius: '4px',
                 border: '1px solid #dee2e6',
                 minHeight: '100px',
                 whiteSpace: 'pre-wrap'
             }}>
-                <strong>Result:</strong><br/>
+                <strong>Result:</strong><br />
                 {result || 'Premi un bottone per testare...'}
             </div>
-            
+
             <div style={{ marginTop: '20px', fontSize: '12px', color: '#666' }}>
-                <strong>Istruzioni:</strong><br/>
-                1. Assicurati che il server sia avviato con: <code>node test-server.js</code><br/>
-                2. Controlla che non ci siano errori nella console del browser (F12)<br/>
+                <strong>Istruzioni:</strong><br />
+                1. Assicurati che il server sia avviato con: <code>node test-server.js</code><br />
+                2. Controlla che non ci siano errori nella console del browser (F12)<br />
                 3. Il server dovrebbe essere su http://localhost:8080
             </div>
         </div>
