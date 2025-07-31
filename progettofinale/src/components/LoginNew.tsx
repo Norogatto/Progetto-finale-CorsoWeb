@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { loginStart, loginSuccess, loginFailure } from "../redux/userSlice";
 import type { Utenti } from "../model/Classes";
 
 type Props = {
@@ -8,10 +10,15 @@ type Props = {
 
 export default function LoginNew({ user }: Props) {
     const navigate = useNavigate();
+    const dispatch = useAppDispatch();
+    
+    // Usa Redux invece dello stato locale
+    const { currentUser, loading, isAuthenticated } = useAppSelector((state) => state.user);
+    
     const [emailForm, setEmailForm] = useState("");
     const [pswForm, setPswForm] = useState("");
     const [showAlert, setShowAlert] = useState(false);
-    const [currentUser, setCurrentUser] = useState<Utenti | null>(user || null);
+    // ❌ Rimosso: currentUser locale non serve più
 
     const loadUser = async (): Promise<Utenti | null> => {
         try {
@@ -32,7 +39,7 @@ export default function LoginNew({ user }: Props) {
             }
 
             const user: Utenti = await response.json();
-            setCurrentUser(user);
+            // ❌ Rimosso: setCurrentUser(user) - ora usa Redux
             return user;
         } catch (err) {
             console.error('Errore nella fetch login:', err);
@@ -44,18 +51,25 @@ export default function LoginNew({ user }: Props) {
         e.preventDefault();
 
         if (emailForm.trim() !== "" && pswForm.trim() !== "") {
+            // ✅ Dispatch loading state
+            dispatch(loginStart());
+            
             const user = await loadUser();
 
             if (user) {
+                // ✅ Salva utente nello store Redux
+                dispatch(loginSuccess(user));
                 setShowAlert(true);
                 
-                // Naviga dopo il login riuscito
+                // ✅ Route corretta (senza .tsx)
                 setTimeout(() => {
                     setShowAlert(false);
                     navigate('/TaskManager');
-                }, 1500); // Ridotto il tempo per una migliore UX
+                }, 1500);
                 
             } else {
+                // ✅ Dispatch fallimento
+                dispatch(loginFailure());
                 alert("Credenziali errate o utente non trovato");
             }
 
@@ -74,6 +88,7 @@ export default function LoginNew({ user }: Props) {
                 </div>
             )}
             
+            {/* ✅ Ora usa currentUser da Redux */}
             {currentUser && (
                 <div className="mb-4 p-3 bg-blue-100 border border-blue-300 rounded">
                     <div className="text-blue-800">
@@ -93,6 +108,7 @@ export default function LoginNew({ user }: Props) {
                         onChange={(e) => setEmailForm(e.target.value)}
                         placeholder="Email..."
                         required
+                        disabled={loading} // ✅ Disabilita durante il loading
                     />
                     
                     <input
@@ -102,6 +118,7 @@ export default function LoginNew({ user }: Props) {
                         onChange={(e) => setPswForm(e.target.value)}
                         placeholder="Password..."
                         required
+                        disabled={loading} // ✅ Disabilita durante il loading
                     />
                    
                     <Link to="/Register">
@@ -111,9 +128,9 @@ export default function LoginNew({ user }: Props) {
                     <button 
                         type="submit"
                         className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
-                        disabled={!emailForm.trim() || !pswForm.trim()}
+                        disabled={!emailForm.trim() || !pswForm.trim() || loading}
                     >
-                        Login
+                        {loading ? 'Accesso in corso...' : 'Login'} {/* ✅ Testo dinamico */}
                     </button>
                 </form>
             </div>
