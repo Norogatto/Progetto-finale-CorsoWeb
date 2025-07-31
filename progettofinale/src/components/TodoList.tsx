@@ -32,7 +32,6 @@ export default function TodoList() {
 
     return (
         <div>
-            {/* Stats header */}
             <div
                 className="mb-8 p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-2xl border border-white/10"
                 >

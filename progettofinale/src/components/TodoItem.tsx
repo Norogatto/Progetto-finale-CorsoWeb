@@ -62,10 +62,9 @@ export default function TodoItem({ todo }: Props) {
 
     return (
         <div
-            className={`group relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${
-                todo.completato ? 'opacity-90' : ''
-            }`}
-            >
+            className={`group relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${todo.completato ? 'opacity-90' : ''
+                }`}
+        >
             {/* Status gradient bar */}
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getStatusColor()}`} />
 
@@ -89,24 +88,23 @@ export default function TodoItem({ todo }: Props) {
                                     <CheckCircleIcon className="h-7 w-7 text-white/50 hover:text-green-400 transition-colors" />
                                 )}
                             </button>
-                            <span className={`text-lg font-semibold ${
-                                todo.completato
+                            <span className={`text-lg font-semibold ${todo.completato
                                     ? 'text-white/60 line-through'
                                     : 'text-white'
-                            }`}>
-                {todo.testo}
-              </span>
+                                }`}>
+                                {todo.testo}
+                            </span>
                         </div>
 
                         {/* Date info */}
                         <div>
                             <div>
-                                <CalendarDaysIcon/>
+                                <CalendarDaysIcon />
                                 <span>Aggiunto: {formatDate(todo.dataAggiunta)}</span>
                             </div>
                             {todo.dataCompletamento && (
                                 <div>
-                                    <CheckCircleIcon/>
+                                    <CheckCircleIcon />
                                     <span>Completato: {formatDate(todo.dataCompletamento)}</span>
                                 </div>
                             )}
@@ -122,8 +120,8 @@ export default function TodoItem({ todo }: Props) {
                                 value={dataScadenzaInput}
                                 onChange={handleDataScadenzaChange}
                                 onBlur={handleDataScadenzaBlur}
-                               />
-                            <ClockIcon/>
+                            />
+                            <ClockIcon />
                         </div>
 
                         {/* Delete button */}
@@ -148,14 +146,14 @@ export default function TodoItem({ todo }: Props) {
                     {isOggi && !todo.completato && (
                         <span
                             className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs font-medium"
-                            >
+                        >
                             Scade oggi
                         </span>
                     )}
                     {todo.completato && (
                         <span
                             className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-xs font-medium"
-                           >
+                        >
                             Completato
                         </span>
                     )}

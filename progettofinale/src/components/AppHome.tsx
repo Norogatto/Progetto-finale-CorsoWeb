@@ -1,10 +1,6 @@
-function TodoForm() {
-  return <div>TodoForm placeholder</div>;
-}
+import TodoForm from "./TodoForm";
+import TodoList from "./TodoList";
 
-function TodoList() {
-  return <div>TodoList placeholder</div>;
-}
 
 function AppHome() {
   return (
