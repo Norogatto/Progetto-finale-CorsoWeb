@@ -1,93 +1,76 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import type { Utenti } from "../model/Classes";
 
 type Props = {
     user?: Utenti;
 };
-export default function LoginNew({ user }: Props) {
 
+export default function LoginNew({ user }: Props) {
+    const navigate = useNavigate();
     const [emailForm, setEmailForm] = useState("");
     const [pswForm, setPswForm] = useState("");
     const [showAlert, setShowAlert] = useState(false);
     const [currentUser, setCurrentUser] = useState<Utenti | null>(user || null);
-/*
-    const loadAdmin = async (): Promise<Utenti | null> => {
+
+    const loadUser = async (): Promise<Utenti | null> => {
         try {
-            const response = await fetch('http://localhost:8080/api/admin');
+            const response = await fetch('http://localhost:8080/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: emailForm,
+                    password: pswForm
+                })
+            });
 
-            if (!response.ok) throw new Error(`Errore server: ${response.status}`);
-
-            const adminArray: Utenti[] = await response.json();
-            // Il server restituisce un array, prendiamo il primo elemento
-            if (adminArray && adminArray.length > 0) {
-                const adminUser = adminArray[0];
-                setCurrentUser(adminUser);
-                return adminUser;
-            } else {
-                console.log('Nessun admin trovato');
+            if (!response.ok) {
+                console.warn('Credenziali non valide o errore server:', response.status);
                 return null;
             }
 
+            const user: Utenti = await response.json();
+            setCurrentUser(user);
+            return user;
         } catch (err) {
-            console.error('Errore nella fetch:', err);
+            console.error('Errore nella fetch login:', err);
             return null;
         }
-    }; */
-
-    const loadUser = async (): Promise<Utenti | null> => {
-    try {
-        const response = await fetch('http://localhost:8080/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email: emailForm,
-                password: pswForm
-            })
-        });
-
-        if (!response.ok) {
-            console.warn('Credenziali non valide o errore server:', response.status);
-            return null;
-        }
-
-        const user: Utenti = await response.json();
-        setCurrentUser(user);
-        return user;
-    } catch (err) {
-        console.error('Errore nella fetch login:', err);
-        return null;
-    }
-};
-
-
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+        e.preventDefault();
 
-    if (emailForm.trim() !== "" && pswForm.trim() !== "") {
-        const user = await loadUser();
+        if (emailForm.trim() !== "" && pswForm.trim() !== "") {
+            const user = await loadUser();
 
-        if (user) {
-            setShowAlert(true);
-            setTimeout(() => setShowAlert(false), 5000);
+            if (user) {
+                setShowAlert(true);
+                
+                // Naviga dopo il login riuscito
+                setTimeout(() => {
+                    setShowAlert(false);
+                    navigate('/TaskManager');
+                }, 1500); // Ridotto il tempo per una migliore UX
+                
+            } else {
+                alert("Credenziali errate o utente non trovato");
+            }
+
+            setEmailForm("");
+            setPswForm("");
         } else {
-            alert("Credenziali errate o utente non trovato");
+            alert("Inserisci email e password");
         }
-
-        setEmailForm("");
-        setPswForm("");
-    }
-};
-
-
+    };
 
     return (
         <div className="max-w-md mx-auto p-4">
             {showAlert && (
                 <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded">
-                    <span className="text-green-800">Login avvenuto con successo</span>
+                    <span className="text-green-800">Login avvenuto con successo! Reindirizzamento...</span>
                 </div>
             )}
             
@@ -102,13 +85,14 @@ export default function LoginNew({ user }: Props) {
             )}
             
             <div className="bg-white border rounded p-6">
-                <div className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <input
                         type="email"
-                        className="w-full border rounded px-3 py-2  text-black"
+                        className="w-full border rounded px-3 py-2 text-black"
                         value={emailForm}
                         onChange={(e) => setEmailForm(e.target.value)}
                         placeholder="Email..."
+                        required
                     />
                     
                     <input
@@ -117,25 +101,22 @@ export default function LoginNew({ user }: Props) {
                         value={pswForm}
                         onChange={(e) => setPswForm(e.target.value)}
                         placeholder="Password..."
-                        
+                        required
                     />
+                   
+                    <Link to="/Register">
+                        <p className="underline mb-1">Registrati ora!</p>
+                    </Link>
                     
                     <button 
-                        onClick={handleSubmit}
-                        className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                        type="submit"
+                        className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+                        disabled={!emailForm.trim() || !pswForm.trim()}
                     >
                         Login
                     </button>
-                    
-                    <button 
-                        
-                        className="w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
-                    >
-                        Carica Admin
-                    </button>
-                </div>
+                </form>
             </div>
         </div>
     );
-
 }
