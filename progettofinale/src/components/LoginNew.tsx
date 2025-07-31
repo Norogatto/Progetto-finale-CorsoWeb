@@ -10,7 +10,7 @@ export default function LoginNew({ user }: Props) {
     const [pswForm, setPswForm] = useState("");
     const [showAlert, setShowAlert] = useState(false);
     const [currentUser, setCurrentUser] = useState<Utenti | null>(user || null);
-
+/*
     const loadAdmin = async (): Promise<Utenti | null> => {
         try {
             const response = await fetch('http://localhost:8080/api/admin');
@@ -32,20 +32,56 @@ export default function LoginNew({ user }: Props) {
             console.error('Errore nella fetch:', err);
             return null;
         }
-    };
+    }; */
 
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        if (emailForm.trim() !== "" && pswForm.trim() !== "") {
-            setEmailForm("");
-            setPswForm("");
-            setShowAlert(true);
+    const loadUser = async (): Promise<Utenti | null> => {
+    try {
+        const response = await fetch('http://localhost:8080/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: emailForm,
+                password: pswForm
+            })
+        });
 
-            setTimeout(() => {
-                setShowAlert(false);
-            }, 5000);
+        if (!response.ok) {
+            console.warn('Credenziali non valide o errore server:', response.status);
+            return null;
         }
+
+        const user: Utenti = await response.json();
+        setCurrentUser(user);
+        return user;
+    } catch (err) {
+        console.error('Errore nella fetch login:', err);
+        return null;
     }
+};
+
+
+
+    const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (emailForm.trim() !== "" && pswForm.trim() !== "") {
+        const user = await loadUser();
+
+        if (user) {
+            setShowAlert(true);
+            setTimeout(() => setShowAlert(false), 5000);
+        } else {
+            alert("Credenziali errate o utente non trovato");
+        }
+
+        setEmailForm("");
+        setPswForm("");
+    }
+};
+
+
 
     return (
         <div className="max-w-md mx-auto p-4">
@@ -92,7 +128,7 @@ export default function LoginNew({ user }: Props) {
                     </button>
                     
                     <button 
-                        onClick={loadAdmin}
+                        
                         className="w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
                     >
                         Carica Admin

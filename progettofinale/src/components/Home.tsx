@@ -20,6 +20,14 @@ function Home() {
       <br /><br />
 
       <div>
+        <Link to="/Register">
+        <button>Registrati</button>
+        </Link>
+      </div>
+
+      <br /><br />
+
+      <div>
         <Link to="/AppHome">
           <button>Accedi come ospite</button>
         </Link>

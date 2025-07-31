@@ -65,11 +65,11 @@ export default function TodoList() {
             <ul
                 className="space-y-4"
             >
-                {todos.map((todo, index) => (
+                {todos.map((todo) => (
                     <li
                         key={todo.id}
                         >
-                        <TodoItem todo={todo} index={index} />
+                        <TodoItem todo={todo} />
                     </li>
                 ))}
             </ul>
