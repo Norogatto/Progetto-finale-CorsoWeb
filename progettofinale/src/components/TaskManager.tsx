@@ -2,20 +2,19 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { logout } from "../redux/userSlice";
-import { 
-  aggiungiTodo, 
-  rimuoviTodo, 
-  cambiaStatoTask, 
-  modificaTask, 
-  caricaTasks 
+import {
+  aggiungiTodo,
+  rimuoviTodo,
+  cambiaStatoTask,
+  modificaTask,
+  caricaTasks
 } from "../redux/TasksSlice";
 import type { Task } from "../model/Classes";
 
-// Tipi per le operazioni CRUD
 type NewTaskData = {
   nome_task: string;
   descrizione: string;
-  data_fine: string; // formato YYYY-MM-DD per MySQL
+  data_fine: string; 
 };
 
 type UpdateTaskData = {
@@ -28,12 +27,10 @@ type UpdateTaskData = {
 function TaskManager() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  
-  // Redux state
+
   const { currentUser, isAuthenticated } = useAppSelector((state) => state.user);
   const tasks = useAppSelector((state) => state.todos);
-  
-  // Local state per form e loading
+
   const [loading, setLoading] = useState(false);
   const [newTask, setNewTask] = useState<NewTaskData>({
     nome_task: '',
@@ -42,43 +39,61 @@ function TaskManager() {
   });
   const [editingTask, setEditingTask] = useState<UpdateTaskData | null>(null);
 
-  // Reindirizza al login se non autenticato
+  // Controllo autenticazione
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
+      console.log('Utente non autenticato, reindirizzamento al login');
       navigate('/Login');
     }
   }, [isAuthenticated, currentUser, navigate]);
 
-  // Carica task al mount
   useEffect(() => {
-    if (currentUser) {
+    if (isAuthenticated && currentUser) {
+      console.log('Caricamento task per utente autenticato:', currentUser.idUtente);
       loadTasksFromDB();
     }
-  }, [currentUser]);
+  }, [currentUser, isAuthenticated]);
 
-  // ===== OPERAZIONI DATABASE =====
+
+  const checkAuth = (): boolean => {
+    if (!isAuthenticated || !currentUser) {
+      console.error('❌ Operazione negata: utente non autenticato');
+      navigate('/Login');
+      return false;
+    }
+    return true;
+  };
 
   // Carica tutti i task dell'utente dal DB
   const loadTasksFromDB = async () => {
+    if (!checkAuth()) return;
+
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8080/api/tasks/user/${currentUser?.idUtente}`);
-      
-      if (!response.ok) throw new Error('Errore nel caricamento task');
-      
+      console.log(`Caricamento task per utente ${currentUser!.idUtente}`);
+
+      const response = await fetch(`http://localhost:8080/api/tasks/user/${currentUser!.idUtente}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const tasksFromDB: Task[] = await response.json();
-      
+      console.log(`Caricati ${tasksFromDB.length} task dal database`);
+
       // Converte le date string in oggetti Date
       const processedTasks = tasksFromDB.map(task => ({
         ...task,
         data_aggiunta: new Date(task.data_aggiunta),
         data_fine: new Date(task.data_fine)
       }));
-      
-      dispatch(caricaTasks(processedTasks));
+
+      if (isAuthenticated && currentUser) {
+        dispatch(caricaTasks(processedTasks));
+      }
     } catch (error) {
       console.error('Errore caricamento task:', error);
-      alert('Errore nel caricamento dei task');
+      alert('Errore nel caricamento dei task. Riprova.');
     } finally {
       setLoading(false);
     }
@@ -87,16 +102,16 @@ function TaskManager() {
   // Aggiungi nuovo task
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !newTask.nome_task.trim()) return;
+    if (!checkAuth() || !newTask.nome_task.trim()) return;
 
     try {
       setLoading(true);
-      
+
       const taskToSend = {
-        userID: currentUser.idUtente,
-        stateID: 0, // 0 = da fare
-        nome_task: newTask.nome_task,
-        descrizione: newTask.descrizione,
+        userID: currentUser!.idUtente,
+        stateID: 0,
+        nome_task: newTask.nome_task.trim(),
+        descrizione: newTask.descrizione.trim(),
         data_fine: newTask.data_fine
       };
 
@@ -106,29 +121,38 @@ function TaskManager() {
         body: JSON.stringify(taskToSend)
       });
 
-      if (!response.ok) throw new Error('Errore nella creazione del task');
-      
-      const createdTask: Task = await response.json();
-      
-      // Aggiorna Redux con il task dal server
-      dispatch(aggiungiTodo({
-        nome_task: createdTask.nome_task,
-        descrizione: createdTask.descrizione,
-        stateID: createdTask.stateID,
-        userID: createdTask.userID,
-        data_fine: new Date(createdTask.data_fine)
-      }));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
 
-      // Reset form
-      setNewTask({
-        nome_task: '',
-        descrizione: '',
-        data_fine: new Date().toISOString().split('T')[0]
-      });
+      const createdTask: Task = await response.json();
+      console.log('Task creato:', createdTask.idTask);
+
+      if (isAuthenticated && currentUser) {
+        dispatch(aggiungiTodo({
+          nome_task: createdTask.nome_task,
+          descrizione: createdTask.descrizione,
+          stateID: createdTask.stateID,
+          userID: createdTask.userID,
+          data_fine: new Date(createdTask.data_fine)
+        }));
+
+        // Reset form
+        setNewTask({
+          nome_task: '',
+          descrizione: '',
+          data_fine: new Date().toISOString().split('T')[0]
+        });
+      }
 
     } catch (error) {
       console.error('Errore aggiunta task:', error);
-      alert('Errore nell\'aggiunta del task');
+      if (error instanceof Error) {
+        alert(`Errore nell'aggiunta del task: ${error.message}`);
+      } else {
+        alert('Errore sconosciuto durante l\'aggiunta del task');
+      }
     } finally {
       setLoading(false);
     }
@@ -136,85 +160,130 @@ function TaskManager() {
 
   // Elimina task
   const handleDeleteTask = async (idTask: number) => {
+    if (!checkAuth()) return;
+
     if (!confirm('Sei sicuro di voler eliminare questo task?')) return;
 
     try {
       setLoading(true);
-      
+      console.log(`🗑️ Eliminazione task ${idTask}...`);
+
       const response = await fetch(`http://localhost:8080/api/tasks/${idTask}`, {
         method: 'DELETE'
       });
 
-      if (!response.ok) throw new Error('Errore nell\'eliminazione del task');
-      
-      dispatch(rimuoviTodo(idTask));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      if (isAuthenticated && currentUser) {
+        dispatch(rimuoviTodo(idTask));
+      }
 
     } catch (error) {
       console.error('Errore eliminazione task:', error);
-      alert('Errore nell\'eliminazione del task');
-    } finally {
+      if (error instanceof Error) {
+        alert(`Errore nell'eliminazione del task: ${error.message}`);
+      } else {
+        alert('Errore sconosciuto durante l\'eliminazione del task');
+      }
+    }
+    finally {
       setLoading(false);
     }
   };
 
   // Cambia stato task
   const handleChangeTaskState = async (idTask: number, newStateID: number) => {
+    if (!checkAuth()) return;
+
     try {
       setLoading(true);
-      
+      console.log(`Cambio stato task ${idTask} a ${newStateID}...`);
+
       const response = await fetch(`http://localhost:8080/api/tasks/${idTask}/state`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stateID: newStateID })
       });
 
-      if (!response.ok) throw new Error('Errore nel cambio stato');
-      
-      dispatch(cambiaStatoTask({ idTask, stateID: newStateID }));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      console.log(`Stato task ${idTask} cambiato a ${newStateID}`);
+
+      if (isAuthenticated && currentUser) {
+        dispatch(cambiaStatoTask({ idTask, stateID: newStateID }));
+      }
 
     } catch (error) {
       console.error('Errore cambio stato:', error);
-      alert('Errore nel cambio di stato');
-    } finally {
+      if (error instanceof Error) {
+        alert(`Errore nel cambio di stato: ${error.message}`);
+      } else {
+        alert('Errore sconosciuto nel cambio di stato');
+      }
+    }
+    finally {
       setLoading(false);
     }
   };
 
   // Modifica task
   const handleUpdateTask = async (updateData: UpdateTaskData) => {
+    if (!checkAuth()) return;
+
     try {
       setLoading(true);
-      
+      console.log(`Modifica task ${updateData.idTask}...`);
+
       const response = await fetch(`http://localhost:8080/api/tasks/${updateData.idTask}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nome_task: updateData.nome_task,
-          descrizione: updateData.descrizione,
+          nome_task: updateData.nome_task?.trim(),
+          descrizione: updateData.descrizione?.trim(),
           data_fine: updateData.data_fine
         })
       });
 
-      if (!response.ok) throw new Error('Errore nella modifica del task');
-      
-      dispatch(modificaTask({
-        idTask: updateData.idTask,
-        nome_task: updateData.nome_task,
-        descrizione: updateData.descrizione,
-        data_fine: updateData.data_fine ? new Date(updateData.data_fine) : undefined
-      }));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      console.log(`Task ${updateData.idTask} modificato`);
+
+      if (isAuthenticated && currentUser) {
+        dispatch(modificaTask({
+          idTask: updateData.idTask,
+          nome_task: updateData.nome_task,
+          descrizione: updateData.descrizione,
+          data_fine: updateData.data_fine ? new Date(updateData.data_fine) : undefined
+        }));
+      }
 
       setEditingTask(null);
 
     } catch (error) {
       console.error('Errore modifica task:', error);
-      alert('Errore nella modifica del task');
-    } finally {
+      if (error instanceof Error) {
+        alert(`Errore nella modifica del task: ${error.message}`);
+      } else {
+        alert('Errore sconosciuto nella modifica del task');
+      }
+    }
+    finally {
       setLoading(false);
     }
   };
 
+  // Logout
   const handleLogout = () => {
+    console.log('Logout utente');
     dispatch(logout());
     navigate('/Login');
   };
@@ -230,201 +299,128 @@ function TaskManager() {
   };
 
   // Filtra task per stato
-  const tasksDaFare = tasks.filter(task => task.userID === currentUser?.idUtente && task.stateID === 0);
-  const tasksInCorso = tasks.filter(task => task.userID === currentUser?.idUtente && task.stateID === 1);
-  const tasksCompletati = tasks.filter(task => task.userID === currentUser?.idUtente && task.stateID === 2);
+  const userTasks = isAuthenticated && currentUser
+    ? tasks.filter(task => task.userID === currentUser.idUtente)
+    : [];
 
-  // Se non c'è utente, non renderizzare nulla (redirect in corso)
+  const tasksDaFare = userTasks.filter(task => task.stateID === 0);
+  const tasksInCorso = userTasks.filter(task => task.stateID === 1);
+  const tasksCompletati = userTasks.filter(task => task.stateID === 2);
+
   if (!currentUser || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
-        <div className="text-white text-xl">Caricamento...</div>
+        <div className="text-white text-xl flex items-center gap-3">
+          <div className="animate-spin w-8 h-8 border-2 border-white/30 border-t-white rounded-full"></div>
+          Verifica autenticazione...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      
-      {/* Header con informazioni utente e logout */}
-      <div className="container mx-auto max-w-6xl relative z-10 mb-6">
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="text-white">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Task Manager
-              </h1>
-              <p className="text-white/80 mt-1">
-                Benvenuto, {currentUser.nome} {currentUser.cognome}!
-              </p>
-              <p className="text-white/60 text-sm">
-                {currentUser.email} | {currentUser.role ? '👑 Admin' : '👤 Utente'}
-              </p>
+      <div className="min-h-screen py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+            <div className="w-full md:w-1/3">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl">
+                <h2 className="text-2xl font-bold mb-4">Aggiungi Task</h2>
+                <form onSubmit={handleAddTask} className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Nome task..."
+                    value={newTask.nome_task}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, nome_task: e.target.value }))}
+                    className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
+                    required
+                    disabled={loading}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Descrizione..."
+                    value={newTask.descrizione}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, descrizione: e.target.value }))}
+                    className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
+                    disabled={loading}
+                  />
+                  <input
+                    type="date"
+                    value={newTask.data_fine}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, data_fine: e.target.value }))}
+                    className="px-4 py-2 rounded-xl bg-white/20 text-white border border-white/30 focus:border-blue-400 focus:outline-none"
+                    disabled={loading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !newTask.nome_task.trim()}
+                    className="px-6 py-2 bg-green-500/80 hover:bg-green-500 text-white rounded-xl border border-green-400/30 transition-all duration-200 hover:scale-105 disabled:opacity-50"
+                  >
+                    {loading ? '⏳' : '➕ Aggiungi'}
+                  </button>
+                </form>
+              </div>
             </div>
             
-            <div className="flex gap-3">
-              <button 
-                onClick={loadTasksFromDB}
-                disabled={loading}
-                className="bg-blue-500/80 hover:bg-blue-500 text-white px-4 py-2 rounded-xl backdrop-blur-sm border border-blue-400/30 transition-all duration-200 hover:scale-105 disabled:opacity-50"
-              >
-                🔄 Ricarica
-              </button>
-              <button 
-                onClick={handleLogout}
-                className="bg-red-500/80 hover:bg-red-500 text-white px-6 py-2 rounded-xl backdrop-blur-sm border border-red-400/30 transition-all duration-200 hover:scale-105"
-              >
-                Logout
-              </button>
+            <div className="w-full md:w-2/3">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">I tuoi Task</h2>
+                  <div className="flex gap-2">
+                    {tasksDaFare.map(task => (
+                      <TaskCard
+                        key={task.idTask}
+                        task={task}
+                        onDelete={handleDeleteTask}
+                        onChangeState={handleChangeTaskState}
+                        onEdit={setEditingTask}
+                        getStateName={getStateName}
+                        loading={loading}
+                      />
+                    ))}
+                    {tasksDaFare.length === 0 && (
+                      <p className="text-white/60 text-center py-4">Nessun task da fare</p>
+                    )}
+                  </div>
+                </div>
+                
+                {tasksInCorso.map(task => (
+                  <TaskCard
+                    key={task.idTask}
+                    task={task}
+                    onDelete={handleDeleteTask}
+                    onChangeState={handleChangeTaskState}
+                    onEdit={setEditingTask}
+                    getStateName={getStateName}
+                    loading={loading}
+                  />
+                ))}
+                {tasksInCorso.length === 0 && (
+                  <p className="text-white/60 text-center py-4">Nessun task in corso</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
+        {editingTask && (
+          <EditTaskModal
+            task={editingTask}
+            onSave={handleUpdateTask}
+            onCancel={() => setEditingTask(null)}
+            loading={loading}
+          />
+        )}
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-white/30 rounded-full animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 2}s`,
+            }}
+          />
+        ))}
       </div>
-
-      {/* Effetti di background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-400/20 to-indigo-600/20 rounded-full blur-3xl" />
-      </div>
-
-      {/* Contenuto principale */}
-      <div className="container mx-auto max-w-6xl relative z-10">
-        
-        {/* Form aggiunta task */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-6">
-          <h2 className="text-2xl font-bold text-white mb-4">➕ Nuovo Task</h2>
-          <form onSubmit={handleAddTask} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input
-              type="text"
-              placeholder="Nome task..."
-              value={newTask.nome_task}
-              onChange={(e) => setNewTask(prev => ({ ...prev, nome_task: e.target.value }))}
-              className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
-              required
-              disabled={loading}
-            />
-            <input
-              type="text"
-              placeholder="Descrizione..."
-              value={newTask.descrizione}
-              onChange={(e) => setNewTask(prev => ({ ...prev, descrizione: e.target.value }))}
-              className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
-              disabled={loading}
-            />
-            <input
-              type="date"
-              value={newTask.data_fine}
-              onChange={(e) => setNewTask(prev => ({ ...prev, data_fine: e.target.value }))}
-              className="px-4 py-2 rounded-xl bg-white/20 text-white border border-white/30 focus:border-blue-400 focus:outline-none"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading || !newTask.nome_task.trim()}
-              className="px-6 py-2 bg-green-500/80 hover:bg-green-500 text-white rounded-xl border border-green-400/30 transition-all duration-200 hover:scale-105 disabled:opacity-50"
-            >
-              {loading ? '⏳' : '➕ Aggiungi'}
-            </button>
-          </form>
-        </div>
-
-        {/* Dashboard task per stato */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* Da fare */}
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              📋 Da fare <span className="bg-red-500 text-white px-2 py-1 rounded-full text-sm">{tasksDaFare.length}</span>
-            </h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {tasksDaFare.map(task => (
-                <TaskCard 
-                  key={task.idTask} 
-                  task={task} 
-                  onDelete={handleDeleteTask}
-                  onChangeState={handleChangeTaskState}
-                  onEdit={setEditingTask}
-                  getStateName={getStateName}
-                  loading={loading}
-                />
-              ))}
-              {tasksDaFare.length === 0 && (
-                <p className="text-white/60 text-center py-4">Nessun task da fare</p>
-              )}
-            </div>
-          </div>
-
-          {/* In corso */}
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              ⏳ In corso <span className="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm">{tasksInCorso.length}</span>
-            </h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {tasksInCorso.map(task => (
-                <TaskCard 
-                  key={task.idTask} 
-                  task={task} 
-                  onDelete={handleDeleteTask}
-                  onChangeState={handleChangeTaskState}
-                  onEdit={setEditingTask}
-                  getStateName={getStateName}
-                  loading={loading}
-                />
-              ))}
-              {tasksInCorso.length === 0 && (
-                <p className="text-white/60 text-center py-4">Nessun task in corso</p>
-              )}
-            </div>
-          </div>
-
-          {/* Completati */}
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              ✅ Completati <span className="bg-green-500 text-white px-2 py-1 rounded-full text-sm">{tasksCompletati.length}</span>
-            </h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {tasksCompletati.map(task => (
-                <TaskCard 
-                  key={task.idTask} 
-                  task={task} 
-                  onDelete={handleDeleteTask}
-                  onChangeState={handleChangeTaskState}
-                  onEdit={setEditingTask}
-                  getStateName={getStateName}
-                  loading={loading}
-                />
-              ))}
-              {tasksCompletati.length === 0 && (
-                <p className="text-white/60 text-center py-4">Nessun task completato</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Modal modifica task */}
-      {editingTask && (
-        <EditTaskModal 
-          task={editingTask}
-          onSave={handleUpdateTask}
-          onCancel={() => setEditingTask(null)}
-          loading={loading}
-        />
-      )}
-
-      {/* Particelle decorative */}
-      {[...Array(6)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-2 h-2 bg-white/30 rounded-full animate-pulse"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 2}s`,
-          }}
-        />
-      ))}
-    </div>
   );
 }
 
@@ -440,13 +436,12 @@ interface TaskCardProps {
 
 function TaskCard({ task, onDelete, onChangeState, onEdit, getStateName, loading }: TaskCardProps) {
   const state = getStateName(task.stateID);
-  
+
   return (
     <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
       <div className="flex justify-between items-start mb-2">
         <h4 className="font-semibold text-white truncate">{task.nome_task}</h4>
         <div className="flex gap-1">
-          {/* Bottoni cambio stato */}
           {task.stateID !== 0 && (
             <button
               onClick={() => onChangeState(task.idTask, 0)}
@@ -471,8 +466,7 @@ function TaskCard({ task, onDelete, onChangeState, onEdit, getStateName, loading
               title="Segna come completato"
             >✅</button>
           )}
-          
-          {/* Bottoni azioni */}
+
           <button
             onClick={() => onEdit({
               idTask: task.idTask,
@@ -492,9 +486,9 @@ function TaskCard({ task, onDelete, onChangeState, onEdit, getStateName, loading
           >🗑️</button>
         </div>
       </div>
-      
+
       <p className="text-white/70 text-sm mb-2">{task.descrizione}</p>
-      
+
       <div className="flex justify-between items-center text-xs">
         <span className={`px-2 py-1 rounded-full text-white text-xs ${state.color}`}>
           {state.emoji} {state.name}
@@ -507,7 +501,6 @@ function TaskCard({ task, onDelete, onChangeState, onEdit, getStateName, loading
   );
 }
 
-// Modal modifica task
 interface EditTaskModalProps {
   task: UpdateTaskData;
   onSave: (task: UpdateTaskData) => void;

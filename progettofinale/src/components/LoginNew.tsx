@@ -18,7 +18,6 @@ export default function LoginNew({ user }: Props) {
     const [emailForm, setEmailForm] = useState("");
     const [pswForm, setPswForm] = useState("");
     const [showAlert, setShowAlert] = useState(false);
-    // ❌ Rimosso: currentUser locale non serve più
 
     const loadUser = async (): Promise<Utenti | null> => {
         try {
@@ -39,7 +38,6 @@ export default function LoginNew({ user }: Props) {
             }
 
             const user: Utenti = await response.json();
-            // ❌ Rimosso: setCurrentUser(user) - ora usa Redux
             return user;
         } catch (err) {
             console.error('Errore nella fetch login:', err);
@@ -51,24 +49,20 @@ export default function LoginNew({ user }: Props) {
         e.preventDefault();
 
         if (emailForm.trim() !== "" && pswForm.trim() !== "") {
-            // ✅ Dispatch loading state
             dispatch(loginStart());
             
             const user = await loadUser();
 
             if (user) {
-                // ✅ Salva utente nello store Redux
                 dispatch(loginSuccess(user));
                 setShowAlert(true);
                 
-                // ✅ Route corretta (senza .tsx)
                 setTimeout(() => {
                     setShowAlert(false);
                     navigate('/TaskManager');
                 }, 1500);
                 
             } else {
-                // ✅ Dispatch fallimento
                 dispatch(loginFailure());
                 alert("Credenziali errate o utente non trovato");
             }
@@ -83,55 +77,64 @@ export default function LoginNew({ user }: Props) {
     return (
         <div className="max-w-md mx-auto p-4">
             {showAlert && (
-                <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded">
-                    <span className="text-green-800">Login avvenuto con successo! Reindirizzamento...</span>
+                <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+                    <span className="text-green-400 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        Login avvenuto con successo! Reindirizzamento...
+                    </span>
                 </div>
             )}
             
-            {/* ✅ Ora usa currentUser da Redux */}
             {currentUser && (
-                <div className="mb-4 p-3 bg-blue-100 border border-blue-300 rounded">
-                    <div className="text-blue-800">
-                        <p>Utente: {currentUser.nome} {currentUser.cognome}</p>
-                        <p>Email: {currentUser.email}</p>
-                        <p>Ruolo: {currentUser.role ? 'Admin' : 'Utente'}</p>
+                <div className="mb-6 p-4 bg-indigo-500/20 border border-indigo-500/30 rounded-lg">
+                    <div className="text-indigo-300">
+                        <p className="mb-1"><span className="font-medium">Utente:</span> {currentUser.nome} {currentUser.cognome}</p>
+                        <p className="mb-1"><span className="font-medium">Email:</span> {currentUser.email}</p>
+                        <p><span className="font-medium">Ruolo:</span> {currentUser.role ? 'Admin' : 'Utente'}</p>
                     </div>
                 </div>
             )}
             
-            <div className="bg-white border rounded p-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input
-                        type="email"
-                        className="w-full border rounded px-3 py-2 text-black"
-                        value={emailForm}
-                        onChange={(e) => setEmailForm(e.target.value)}
-                        placeholder="Email..."
-                        required
-                        disabled={loading} // ✅ Disabilita durante il loading
-                    />
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8 shadow-xl">
+                <h2 className="text-2xl font-bold mb-6 text-center">Accedi</h2>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                        <label className="block text-sm font-medium text-indigo-200 mb-1">Email</label>
+                        <input
+                            type="email"
+                            className="w-full"
+                            value={emailForm}
+                            onChange={(e) => setEmailForm(e.target.value)}
+                            placeholder="La tua email"
+                        />
+                    </div>
                     
-                    <input
-                        type="password"
-                        className="w-full border rounded px-3 py-2 text-black"
-                        value={pswForm}
-                        onChange={(e) => setPswForm(e.target.value)}
-                        placeholder="Password..."
-                        required
-                        disabled={loading} // ✅ Disabilita durante il loading
-                    />
-                   
-                    <Link to="/Register">
-                        <p className="underline mb-1">Registrati ora!</p>
-                    </Link>
+                    <div>
+                        <label className="block text-sm font-medium text-indigo-200 mb-1">Password</label>
+                        <input
+                            type="password"
+                            className="w-full"
+                            value={pswForm}
+                            onChange={(e) => setPswForm(e.target.value)}
+                            placeholder="La tua password"
+                        />
+                    </div>
                     
                     <button 
-                        type="submit"
-                        className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
-                        disabled={!emailForm.trim() || !pswForm.trim() || loading}
+                        type="submit" 
+                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-3 rounded-lg transition-all duration-200 font-medium"
+                        disabled={loading}
                     >
-                        {loading ? 'Accesso in corso...' : 'Login'} {/* ✅ Testo dinamico */}
+                        {loading ? 'Accesso in corso...' : 'Accedi'}
                     </button>
+                    
+                    <div className="text-center mt-4">
+                        <p className="text-indigo-200">
+                            Non hai un account? <Link to="/Register" className="text-indigo-400 hover:text-indigo-300">Registrati</Link>
+                        </p>
+                    </div>
                 </form>
             </div>
         </div>
