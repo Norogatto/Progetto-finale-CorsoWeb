@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux";
 import { type AppDispatch } from "../redux/store";
 import { useState } from "react";
-import { aggiungiTodo, ordinaTodo, ordinaTodoDecrescente } from "../redux/todoSlice";
+import { aggiungiTodo, ordinaTodo, ordinaTodoDecrescente } from "../redux/TasksSlice";
 import { PlusIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 export default function TodoForm() {
