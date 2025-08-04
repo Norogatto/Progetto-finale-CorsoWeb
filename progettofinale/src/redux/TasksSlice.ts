@@ -2,6 +2,7 @@ import { type Task } from '../model/Classes';
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 type NewTaskData = {
+    idTask: number;
     nome_task: string;
     descrizione: string;
     stateID: number;
@@ -17,7 +18,7 @@ const todoSlice = createSlice({
     reducers: {
         aggiungiTodo: (state, action: PayloadAction<NewTaskData>) => {
             const newTask: Task = {
-                idTask: Date.now(), 
+                idTask: action.payload.idTask, 
                 userID: action.payload.userID,
                 stateID: action.payload.stateID,
                 nome_task: action.payload.nome_task,

@@ -10,6 +10,15 @@ import {
   caricaTasks
 } from "../redux/TasksSlice";
 import type { Task } from "../model/Classes";
+import {
+  ClipboardDocumentListIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  TrashIcon,
+  PencilIcon,
+  PlusIcon
+} from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 
 type NewTaskData = {
   nome_task: string;
@@ -23,6 +32,7 @@ type UpdateTaskData = {
   descrizione?: string;
   data_fine?: string;
 };
+
 
 function TaskManager() {
   const navigate = useNavigate();
@@ -131,6 +141,7 @@ function TaskManager() {
 
       if (isAuthenticated && currentUser) {
         dispatch(aggiungiTodo({
+          idTask: createdTask.idTask,
           nome_task: createdTask.nome_task,
           descrizione: createdTask.descrizione,
           stateID: createdTask.stateID,
@@ -291,10 +302,10 @@ function TaskManager() {
   // Helper per ottenere il nome dello stato
   const getStateName = (stateID: number) => {
     switch (stateID) {
-      case 0: return { name: 'Da fare', color: 'bg-red-500', emoji: '📋' };
-      case 1: return { name: 'In corso', color: 'bg-yellow-500', emoji: '⏳' };
-      case 2: return { name: 'Completato', color: 'bg-green-500', emoji: '✅' };
-      default: return { name: 'Sconosciuto', color: 'bg-gray-500', emoji: '❓' };
+      case 0: return { name: 'Da fare', color: 'bg-red-500', icon: ClipboardDocumentListIcon };
+      case 1: return { name: 'In corso', color: 'bg-yellow-500', icon: ClockIcon };
+      case 2: return { name: 'Completato', color: 'bg-green-500', icon: CheckCircleIcon };
+      default: return { name: 'Sconosciuto', color: 'bg-gray-500', icon: ClipboardDocumentListIcon };
     }
   };
 
@@ -321,68 +332,90 @@ function TaskManager() {
   return (
       <div className="min-h-screen py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
-            <div className="w-full md:w-1/3">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl">
-                <h2 className="text-2xl font-bold mb-4">Aggiungi Task</h2>
-                <form onSubmit={handleAddTask} className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Nome task..."
-                    value={newTask.nome_task}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, nome_task: e.target.value }))}
-                    className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
-                    required
-                    disabled={loading}
+          {/* Sezione Crea Task */}
+          <div className="mb-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl">
+            <h2 className="text-2xl font-bold mb-4">Crea Task</h2>
+            <form onSubmit={handleAddTask} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input
+                type="text"
+                placeholder="Nome task..."
+                value={newTask.nome_task}
+                onChange={(e) => setNewTask(prev => ({ ...prev, nome_task: e.target.value }))}
+                className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
+                required
+                disabled={loading}
+              />
+              <input
+                type="text"
+                placeholder="Descrizione..."
+                value={newTask.descrizione}
+                onChange={(e) => setNewTask(prev => ({ ...prev, descrizione: e.target.value }))}
+                className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
+                disabled={loading}
+              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={newTask.data_fine}
+                  onChange={(e) => setNewTask(prev => ({ ...prev, data_fine: e.target.value }))}
+                  className="flex-1 px-4 py-2 rounded-xl bg-white/20 text-white border border-white/30 focus:border-blue-400 focus:outline-none"
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !newTask.nome_task.trim()}
+                  className="px-6 py-2 bg-green-500/80 hover:bg-green-500 text-white rounded-xl border border-green-400/30 transition-all duration-200 hover:scale-105 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loading ? (
+                    <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></div>
+                  ) : (
+                    <PlusIcon className="h-5 w-5" />
+                  )}
+                  <span>Aggiungi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          {/* Sezione Task */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Colonna Task Da Fare */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl">
+              <div className="flex items-center gap-2 mb-4">
+                <ClipboardDocumentListIcon className="h-6 w-6 text-red-400" />
+                <h2 className="text-xl font-bold">Task Da Fare</h2>
+                <span className="bg-red-500/20 text-red-300 text-xs px-2 py-1 rounded-full">
+                  {tasksDaFare.length}
+                </span>
+              </div>
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                {tasksDaFare.map(task => (
+                  <TaskCard
+                    key={task.idTask}
+                    task={task}
+                    onDelete={handleDeleteTask}
+                    onChangeState={handleChangeTaskState}
+                    onEdit={setEditingTask}
+                    getStateName={getStateName}
+                    loading={loading}
                   />
-                  <input
-                    type="text"
-                    placeholder="Descrizione..."
-                    value={newTask.descrizione}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, descrizione: e.target.value }))}
-                    className="px-4 py-2 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-blue-400 focus:outline-none"
-                    disabled={loading}
-                  />
-                  <input
-                    type="date"
-                    value={newTask.data_fine}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, data_fine: e.target.value }))}
-                    className="px-4 py-2 rounded-xl bg-white/20 text-white border border-white/30 focus:border-blue-400 focus:outline-none"
-                    disabled={loading}
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading || !newTask.nome_task.trim()}
-                    className="px-6 py-2 bg-green-500/80 hover:bg-green-500 text-white rounded-xl border border-green-400/30 transition-all duration-200 hover:scale-105 disabled:opacity-50"
-                  >
-                    {loading ? '⏳' : '➕ Aggiungi'}
-                  </button>
-                </form>
+                ))}
+                {tasksDaFare.length === 0 && (
+                  <p className="text-white/60 text-center py-4 italic">Nessun task da fare</p>
+                )}
               </div>
             </div>
             
-            <div className="w-full md:w-2/3">
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold">I tuoi Task</h2>
-                  <div className="flex gap-2">
-                    {tasksDaFare.map(task => (
-                      <TaskCard
-                        key={task.idTask}
-                        task={task}
-                        onDelete={handleDeleteTask}
-                        onChangeState={handleChangeTaskState}
-                        onEdit={setEditingTask}
-                        getStateName={getStateName}
-                        loading={loading}
-                      />
-                    ))}
-                    {tasksDaFare.length === 0 && (
-                      <p className="text-white/60 text-center py-4">Nessun task da fare</p>
-                    )}
-                  </div>
-                </div>
-                
+            {/* Colonna Task In Corso */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl">
+              <div className="flex items-center gap-2 mb-4">
+                <ClockIcon className="h-6 w-6 text-yellow-400" />
+                <h2 className="text-xl font-bold">Task In Corso</h2>
+                <span className="bg-yellow-500/20 text-yellow-300 text-xs px-2 py-1 rounded-full">
+                  {tasksInCorso.length}
+                </span>
+              </div>
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 {tasksInCorso.map(task => (
                   <TaskCard
                     key={task.idTask}
@@ -395,12 +428,40 @@ function TaskManager() {
                   />
                 ))}
                 {tasksInCorso.length === 0 && (
-                  <p className="text-white/60 text-center py-4">Nessun task in corso</p>
+                  <p className="text-white/60 text-center py-4 italic">Nessun task in corso</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Colonna Task Completati */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircleIcon className="h-6 w-6 text-green-400" />
+                <h2 className="text-xl font-bold">Task Completati</h2>
+                <span className="bg-green-500/20 text-green-300 text-xs px-2 py-1 rounded-full">
+                  {tasksCompletati.length}
+                </span>
+              </div>
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                {tasksCompletati.map(task => (
+                  <TaskCard
+                    key={task.idTask}
+                    task={task}
+                    onDelete={handleDeleteTask}
+                    onChangeState={handleChangeTaskState}
+                    onEdit={setEditingTask}
+                    getStateName={getStateName}
+                    loading={loading}
+                  />
+                ))}
+                {tasksCompletati.length === 0 && (
+                  <p className="text-white/60 text-center py-4 italic">Nessun task completato</p>
                 )}
               </div>
             </div>
           </div>
         </div>
+        
         {editingTask && (
           <EditTaskModal
             task={editingTask}
@@ -430,15 +491,16 @@ interface TaskCardProps {
   onDelete: (id: number) => void;
   onChangeState: (id: number, state: number) => void;
   onEdit: (task: UpdateTaskData) => void;
-  getStateName: (state: number) => { name: string; color: string; emoji: string };
+  getStateName: (state: number) => { name: string; color: string; icon: any };
   loading: boolean;
 }
 
 function TaskCard({ task, onDelete, onChangeState, onEdit, getStateName, loading }: TaskCardProps) {
   const state = getStateName(task.stateID);
+  const StateIcon = state.icon;
 
   return (
-    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
+    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 hover:border-white/40 transition-all duration-200">
       <div className="flex justify-between items-start mb-2">
         <h4 className="font-semibold text-white truncate">{task.nome_task}</h4>
         <div className="flex gap-1">
@@ -446,25 +508,31 @@ function TaskCard({ task, onDelete, onChangeState, onEdit, getStateName, loading
             <button
               onClick={() => onChangeState(task.idTask, 0)}
               disabled={loading}
-              className="text-red-400 hover:text-red-300 disabled:opacity-50"
+              className="text-red-400 hover:text-red-300 disabled:opacity-50 p-1"
               title="Segna come da fare"
-            >📋</button>
+            >
+              <ClipboardDocumentListIcon className="h-4 w-4" />
+            </button>
           )}
           {task.stateID !== 1 && (
             <button
               onClick={() => onChangeState(task.idTask, 1)}
               disabled={loading}
-              className="text-yellow-400 hover:text-yellow-300 disabled:opacity-50"
+              className="text-yellow-400 hover:text-yellow-300 disabled:opacity-50 p-1"
               title="Segna come in corso"
-            >⏳</button>
+            >
+              <ClockIcon className="h-4 w-4" />
+            </button>
           )}
           {task.stateID !== 2 && (
             <button
               onClick={() => onChangeState(task.idTask, 2)}
               disabled={loading}
-              className="text-green-400 hover:text-green-300 disabled:opacity-50"
+              className="text-green-400 hover:text-green-300 disabled:opacity-50 p-1"
               title="Segna come completato"
-            >✅</button>
+            >
+              <CheckCircleIcon className="h-4 w-4" />
+            </button>
           )}
 
           <button
@@ -475,23 +543,27 @@ function TaskCard({ task, onDelete, onChangeState, onEdit, getStateName, loading
               data_fine: task.data_fine.toISOString().split('T')[0]
             })}
             disabled={loading}
-            className="text-blue-400 hover:text-blue-300 disabled:opacity-50"
+            className="text-blue-400 hover:text-blue-300 disabled:opacity-50 p-1"
             title="Modifica"
-          >✏️</button>
+          >
+            <PencilIcon className="h-4 w-4" />
+          </button>
           <button
             onClick={() => onDelete(task.idTask)}
             disabled={loading}
-            className="text-red-400 hover:text-red-300 disabled:opacity-50"
+            className="text-red-400 hover:text-red-300 disabled:opacity-50 p-1"
             title="Elimina"
-          >🗑️</button>
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
       <p className="text-white/70 text-sm mb-2">{task.descrizione}</p>
 
       <div className="flex justify-between items-center text-xs">
-        <span className={`px-2 py-1 rounded-full text-white text-xs ${state.color}`}>
-          {state.emoji} {state.name}
+        <span className={`px-2 py-1 rounded-full text-white text-xs ${state.color} flex items-center gap-1`}>
+          <StateIcon className="h-3 w-3" /> {state.name}
         </span>
         <span className="text-white/50">
           Scade: {task.data_fine.toLocaleDateString()}

@@ -171,64 +171,39 @@ app.post('/api/tasks', async (req, res) => {
     }
 });
 
-// PUT - Modifica un task 
+//MODIFICA UN TASK
 app.put('/api/tasks/:taskId', async (req, res) => {
-    const { taskId } = req.params;
-    const { nome_task, descrizione, data_fine } = req.body;
+   const { taskId } = req.params;
+   const { nome_task, descrizione, data_fine } = req.body;
 
-    if (!nome_task && !descrizione && !data_fine) {
-        return res.status(400).json({ 
-            error: 'Almeno un campo da modificare è richiesto' 
-        });
-    }
+   try {
+       // Aggiorna solo i campi forniti
+       const result = await db.query(`
+           UPDATE task 
+           SET nome_task = COALESCE(?, nome_task),
+               descrizione = COALESCE(?, descrizione),
+               data_fine = COALESCE(?, data_fine)
+           WHERE idTask = ?
+       `, [nome_task, descrizione, data_fine, taskId]);
 
-    try {
-        // Verifica che il task esiste
-        const [existingTask] = await db.query('SELECT * FROM task WHERE idTask = ?', [taskId]);
-        if (existingTask.length === 0) {
-            return res.status(404).json({ error: 'Task non trovato' });
-        }
+       // Controlla se il task esisteva
+       if (result[0].affectedRows === 0) {
+           return res.status(404).json({ error: 'Task non trovato' });
+       }
 
-        // Costruisce la query dinamicamente
-        const updates = [];
-        const values = [];
+       // Recupera il task aggiornato
+       const [updatedTask] = await db.query(`
+           SELECT t.*, s.nome_stato 
+           FROM task t 
+           LEFT JOIN state s ON t.stateID = s.idState 
+           WHERE t.idTask = ?
+       `, [taskId]);
 
-        if (nome_task !== undefined) {
-            updates.push('nome_task = ?');
-            values.push(nome_task);
-        }
-        if (descrizione !== undefined) {
-            updates.push('descrizione = ?');
-            values.push(descrizione);
-        }
-        if (data_fine !== undefined) {
-            updates.push('data_fine = ?');
-            values.push(data_fine);
-        }
-
-        values.push(taskId);
-
-        // Esegue l'aggiornamento
-        await db.query(`
-            UPDATE task 
-            SET ${updates.join(', ')} 
-            WHERE idTask = ?
-        `, values);
-
-        // Recupera il task aggiornato
-        const [updatedTask] = await db.query(`
-            SELECT t.*, s.nome_stato 
-            FROM task t 
-            LEFT JOIN state s ON t.stateID = s.idState 
-            WHERE t.idTask = ?
-        `, [taskId]);
-
-        console.log(`📝 Task ${taskId} modificato`);
-        res.json(updatedTask[0]);
-    } catch (error) {
-        console.error('Errore nella modifica task:', error);
-        res.status(500).json({ error: 'Errore nella modifica del task' });
-    }
+       res.json(updatedTask[0]);
+   } catch (error) {
+       console.error('Errore nella modifica task:', error);
+       res.status(500).json({ error: 'Errore nella modifica del task' });
+   }
 });
 
 // PUT - Modifica solo lo stato di un task
