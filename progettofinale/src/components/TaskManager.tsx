@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { logout } from "../redux/userSlice";
 import {
   aggiungiTodo,
   rimuoviTodo,
@@ -16,9 +15,9 @@ import {
   CheckCircleIcon,
   TrashIcon,
   PencilIcon,
-  PlusIcon
+  PlusIcon,
+  DocumentCheckIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 
 type NewTaskData = {
   nome_task: string;
@@ -292,12 +291,6 @@ function TaskManager() {
     }
   };
 
-  // Logout
-  const handleLogout = () => {
-    console.log('Logout utente');
-    dispatch(logout());
-    navigate('/Login');
-  };
 
   // Helper per ottenere il nome dello stato
   const getStateName = (stateID: number) => {
@@ -591,7 +584,7 @@ function EditTaskModal({ task, onSave, onCancel, loading }: EditTaskModalProps) 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6 w-full max-w-md">
-        <h3 className="text-xl font-bold text-white mb-4">✏️ Modifica Task</h3>
+        <h3 className="text-xl font-bold text-white mb-4">Modifica Task</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
@@ -621,17 +614,23 @@ function EditTaskModal({ task, onSave, onCancel, loading }: EditTaskModalProps) 
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-green-500/80 hover:bg-green-500 text-white py-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+              className="flex-1 bg-green-500/80 hover:bg-green-500 text-white py-2 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? '⏳ Salvando...' : '💾 Salva'}
+              {loading ? (
+                <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></div>
+              ) : (
+                <DocumentCheckIcon className="h-5 w-5" />
+              )}
+              <span>Salva</span>
             </button>
             <button
               type="button"
               onClick={onCancel}
               disabled={loading}
-              className="flex-1 bg-gray-500/80 hover:bg-gray-500 text-white py-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+              className="flex-1 bg-gray-500/80 hover:bg-gray-500 text-white py-2 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              ❌ Annulla
+              <TrashIcon className="h-5 w-5" />
+              <span>Annulla</span>
             </button>
           </div>
         </form>

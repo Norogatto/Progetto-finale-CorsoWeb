@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { KeyIcon, UserPlusIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 function Home() {
   return (
@@ -13,13 +14,15 @@ function Home() {
           Benvenuto in Task Master
         </h1>
         <p className="text-xl text-indigo-200 mb-8">
-          Organizza al meglio le tue attività con la nostra piattaforma intuitiva
+          Organizza al meglio le tue attività con la nostra piattaforma!
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           <Link to="/Login">
             <div className="bg-gradient-to-br from-indigo-600/30 to-indigo-800/30 p-6 rounded-xl border border-indigo-500/30 hover:border-indigo-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-1">
-              <div className="text-3xl mb-3">🔑</div>
+              <div className="text-3xl mb-3 flex justify-center">
+                <KeyIcon className="h-8 w-8 text-indigo-400" />
+              </div>
               <h3 className="text-xl font-medium mb-2">Accedi</h3>
               <p className="text-indigo-200/80 text-sm">Accedi al tuo account per gestire le tue attività</p>
             </div>
@@ -27,7 +30,9 @@ function Home() {
           
           <Link to="/Register">
             <div className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-6 rounded-xl border border-purple-500/30 hover:border-purple-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-1">
-              <div className="text-3xl mb-3">📝</div>
+              <div className="text-3xl mb-3 flex justify-center">
+                <UserPlusIcon className="h-8 w-8 text-purple-400" />
+              </div>
               <h3 className="text-xl font-medium mb-2">Registrati</h3>
               <p className="text-indigo-200/80 text-sm">Crea un nuovo account per iniziare a usare Task Master</p>
             </div>
@@ -35,7 +40,9 @@ function Home() {
           
           <Link to="/AppHome">
             <div className="bg-gradient-to-br from-blue-600/30 to-blue-800/30 p-6 rounded-xl border border-blue-500/30 hover:border-blue-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1">
-              <div className="text-3xl mb-3">👀</div>
+              <div className="text-3xl mb-3 flex justify-center">
+                <EyeIcon className="h-8 w-8 text-blue-400" />
+              </div>
               <h3 className="text-xl font-medium mb-2">Ospite</h3>
               <p className="text-indigo-200/80 text-sm">Prova l'applicazione senza registrarti</p>
             </div>
